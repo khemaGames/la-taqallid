@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>لا تقلّد</title>
+<meta name="description" content="لعبة جماعية: اكتب إجابة ما يفكر فيها غيرك.">
+<meta property="og:title" content="لا تقلّد">
+<meta property="og:description" content="ادخل الغرفة والعب معنا!">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Readex+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one centered column of "cards" like a party-game table; stamps mark unique vs copied answers */
+:root{
+  --bg:#EDF3F0; --surface:#FFFFFF; --ink:#13231D; --muted:#5A6D66; --line:#D2DDD8; --chip:#E2ECE7;
+  --accent:#FF5442; --accent-ink:#FFFFFF; --sun:#FFC63A; --sun-ink:#3A2A00; --ok:#17925F; --bad:#D3263B;
+  --display:"Lalezar","Readex Pro",system-ui,sans-serif;
+  --body:"Readex Pro",system-ui,"Segoe UI",Tahoma,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1916; --surface:#162520; --ink:#E8F1ED; --muted:#93A79F; --line:#2A3D36; --chip:#1F332D;
+  --accent:#FF6655; --accent-ink:#1A0602; --sun:#FFD25E; --sun-ink:#2A1E00; --ok:#3CCB8E; --bad:#FF6375; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1916; --surface:#162520; --ink:#E8F1ED; --muted:#93A79F; --line:#2A3D36; --chip:#1F332D;
+  --accent:#FF6655; --accent-ink:#1A0602; --sun:#FFD25E; --sun-ink:#2A1E00; --ok:#3CCB8E; --bad:#FF6375; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+#app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-family:var(--display);font-size:34px;line-height:1;letter-spacing:0;display:flex;align-items:center;gap:8px}
+.logo .mark{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-size:24px;transform:rotate(-6deg)}
+.codechip{font-variant-numeric:tabular-nums;background:var(--chip);border-radius:999px;padding:4px 12px;font-weight:600;font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--display);font-weight:400;font-size:44px;line-height:1.1}
+h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.2}
+h3{font-size:15px;font-weight:600;color:var(--muted)}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+label{font-weight:600;font-size:14px;display:block;margin-bottom:6px}
+input[type=text]{width:100%;font:inherit;font-size:18px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=text]:focus{outline:none;border-color:var(--accent)}
+button{font:inherit;cursor:pointer;border:none;border-radius:12px;padding:12px 18px;font-weight:600;font-size:16px;background:var(--chip);color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink)}
+button.sun{background:var(--sun);color:var(--sun-ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.link{background:none;padding:6px 8px;color:var(--muted);text-decoration:underline}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row > .grow{flex:1 1 160px;min-width:0}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{padding:8px 14px;border:2px solid transparent}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.rules{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:r}
+.rules li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;counter-increment:r}
+.rules li::before{content:counter(r);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sun);color:var(--sun-ink);font-weight:700;font-size:14px}
+.bigcode{font-family:var(--display);font-size:64px;line-height:1;letter-spacing:6px;font-variant-numeric:tabular-nums;direction:ltr;text-align:center}
+.players{display:flex;flex-wrap:wrap;gap:8px}
+.pchip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border-radius:999px;padding:6px 12px;font-weight:500;font-size:15px}
+.pchip .dot{width:10px;height:10px;border-radius:50%}
+.pchip.done{background:var(--ok);color:var(--surface)}
+.tag{font-size:12px;font-weight:700;background:var(--sun);color:var(--sun-ink);border-radius:6px;padding:1px 6px}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.timer{font-family:var(--display);font-size:34px;line-height:1;min-width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--bg);font-variant-numeric:tabular-nums}
+.timer.low{background:var(--accent);color:var(--accent-ink)}
+.question{font-family:var(--display);font-size:36px;line-height:1.25;text-wrap:balance}
+.points{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px}
+.points button{padding:10px 0;font-variant-numeric:tabular-nums;font-size:17px;border:2px solid transparent}
+.points button[aria-pressed="true"]{background:var(--sun);color:var(--sun-ink);border-color:var(--ink)}
+.points button.used{text-decoration:line-through}
+.count{font-family:var(--display);font-size:120px;line-height:1;text-align:center;color:var(--accent)}
+.groups{display:grid;gap:10px}
+.group{border:2px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--surface);text-align:start;color:var(--ink);font-weight:400}
+button.group{width:100%}
+.group[aria-pressed="true"]{border-color:var(--accent);background:var(--chip)}
+.group .gtext{font-weight:700;font-size:19px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.group.rejected .gtext{text-decoration:line-through;color:var(--muted)}
+.stamp{display:inline-block;font-family:var(--display);font-size:16px;line-height:1;padding:6px 10px 4px;border:2.5px solid currentColor;border-radius:8px;transform:rotate(-4deg);white-space:nowrap}
+.stamp.uniq{color:var(--ok)}
+.stamp.copy{color:var(--bad)}
+.stamp.rej{color:var(--muted)}
+.res{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.res:last-child{border-bottom:none}
+.res .who{font-weight:600}
+.res .ans{color:var(--muted);font-size:15px;min-width:0;overflow-wrap:anywhere}
+.rank{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.rank li{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--chip)}
+.rank li.me{outline:2px solid var(--accent)}
+.rank .pos{font-family:var(--display);font-size:22px;line-height:1;text-align:center}
+.rank .sc{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px}
+.delta{font-size:13px;font-weight:600;margin-inline-start:6px;direction:ltr;unicode-bidi:isolate;display:inline-block}
+.delta.pos{color:var(--ok)} .delta.neg{color:var(--muted)}
+.notice{background:var(--chip);border-radius:12px;padding:12px 14px;font-size:15px}
+.err{color:var(--bad);font-weight:600;font-size:14px;min-height:1em}
+.center{text-align:center}
+.stack{display:flex;flex-direction:column;gap:10px}
+.toolbar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.toolbar button{flex:1 1 120px;padding:10px 12px;font-size:15px}
+@media (prefers-reduced-motion:no-preference){.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:scale(.9);opacity:.4}to{transform:none;opacity:1}}}
+@media (max-width:420px){h1{font-size:38px}.question{font-size:30px}.bigcode{font-size:52px}}
+body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="app" dir="rtl" lang="ar"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ====== الصق إعدادات Firebase حقك هنا (الخطوة 3 في ملف الشرح) ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAPaxA_CLW-XXDkJQdHXx4ZeiVViXOXBZI",
+  authDomain: "latgalled.firebaseapp.com",
+  projectId: "latgalled",
+  storageBucket: "latgalled.firebasestorage.app",
+  messagingSenderId: "531894599341",
+  appId: "1:531894599341:web:8b3ee9e19d8922a4f09024"
+};
+</script>
+<script>
+const BANK = ["اذكر فاكهة", "اذكر دولة عربية", "اذكر مدينة سعودية", "اذكر حيوان يعيش في البحر", "اذكر ماركة سيارات", "اذكر أكلة شعبية خليجية", "اذكر شيء تلقاه في المطبخ", "اذكر لون", "اذكر مهنة", "اذكر تطبيق في جوالك", "اذكر شيء تحطه في شنطة السفر", "اذكر رياضة", "اذكر نادي كرة قدم", "اذكر اسم بنت يبدأ بحرف النون", "اذكر اسم ولد يبدأ بحرف العين", "اذكر نوع خضار", "اذكر شيء لونه أحمر", "اذكر شيء لونه أصفر", "اذكر حيوان أليف", "اذكر طائر", "اذكر دولة أوروبية", "اذكر عاصمة دولة", "اذكر شيء تلقاه في الفصل الدراسي", "اذكر نوع حلى", "اذكر مشروب", "اذكر شيء تسويه يوم الإجازة", "اذكر أداة في صندوق العدة", "اذكر شيء تلقاه في الحمام", "اذكر قطعة ملابس", "اذكر شيء تاخذه معك للكشتة", "اذكر لعبة فيديو", "اذكر مسلسل خليجي", "اذكر شيء له عجلات", "اذكر شيء يطير", "اذكر شيء بارد", "اذكر شيء حار", "اذكر فاكهة صيفية", "اذكر نوع بهار", "اذكر نوع شجرة أو نبتة", "اذكر شيء تشتريه من البقالة", "اذكر جهاز كهربائي في البيت", "اذكر عضو في جسم الإنسان", "اذكر حشرة", "اذكر حيوان مفترس", "اذكر وجبة سريعة", "اذكر مطعم مشهور", "اذكر شيء تلقاه داخل السيارة", "اذكر ماركة جوالات أو إلكترونيات", "اذكر شيء شكله دائري", "اذكر شيء له علاقة بالعرس", "اذكر شيء له علاقة برمضان", "اذكر شيء له علاقة بالعيد", "اذكر شيء تلقاه في المستشفى", "اذكر شيء تلقاه في المطار", "اذكر مادة دراسية", "اذكر آلة موسيقية", "اذكر كوكب أو جرم سماوي", "اذكر معدن أو حجر كريم", "اذكر شيء مصنوع من الخشب", "اذكر شيء مصنوع من البلاستيك", "اذكر وسيلة نقل", "اذكر شخصية كرتونية", "اذكر حيوان يعيش في الصحراء", "اذكر شيء تسويه أول ما تصحى", "اذكر شيء يخوّف", "اذكر هواية", "اذكر شيء تلقاه في الملعب", "اذكر شيء في غرفة النوم", "اذكر نوع جبن أو ألبان", "اذكر شيء ريحته حلوة", "اذكر شيء ريحته مو حلوة", "اذكر شيء ينكسر بسهولة", "اذكر شيء تلقاه على الشاطئ", "اذكر شيء له أزرار", "اذكر شيء يشتغل ببطارية", "اذكر دولة في آسيا", "اذكر دولة في أفريقيا", "اذكر شيء لونه أبيض", "اذكر شيء لونه أسود", "اذكر شيء لونه أخضر", "اذكر نوع مكسرات", "اذكر نوع سمك", "اذكر كلمة تقولها لما تعصب", "اذكر هدية تهديها لأمك", "اذكر شيء ما تقدر تعيش بدونه", "اذكر شيء تلقاه في المكتب", "اذكر محل تلقاه في المول", "اذكر شيء له علاقة بالشتاء", "اذكر حيوان له قرون", "اذكر شيء فيه سكر", "اذكر ماركة ملابس أو أحذية", "اذكر شيء يفتح بمفتاح", "اذكر لاعب كرة قدم مشهور", "اذكر شيء تشتريه من محطة البنزين", "اذكر نوع خبز أو معجنات", "اذكر شيء تسويه في الطيارة", "اذكر وظيفة تتمنى تشتغلها", "اذكر شيء ينفخ", "اذكر شيء يلمع", "اذكر حيوان له ذيل", "اذكر نوع عصير", "اذكر شيء تحطه على البيتزا", "اذكر نوع شوكولاتة", "اذكر نكهة آيسكريم", "اذكر شيء تاكله في الفطور", "اذكر طبخة فيها رز", "اذكر شيء تحطه في السلطة", "اذكر نوع صوص", "اذكر شيء ينقلي بالزيت", "اذكر شيء تاكله في السينما", "اذكر حلى رمضاني", "اذكر شيء تحطه في الشاهي", "اذكر نوع قهوة", "اذكر شيء يتقدّم مع القهوة العربية", "اذكر نوع تمر", "اذكر أكلة إيطالية", "اذكر أكلة هندية", "اذكر أكلة مصرية", "اذكر أكلة شامية", "اذكر أكلة يابانية أو صينية", "اذكر شيء تاكله بالملعقة", "اذكر شيء تاكله بيدك", "اذكر شيء حامض", "اذكر شيء مالح", "اذكر شيء مر", "اذكر نوع شيبس أو سناك", "اذكر نوع لحم", "اذكر شيء تشويه على الفحم", "اذكر شيء ينطبخ في القدر", "اذكر شيء تحطه في الساندويتش", "اذكر نوع كيك", "اذكر نوع بسكويت", "اذكر مشروب غازي", "اذكر فاكهة استوائية", "اذكر شيء ينحفظ في الفريزر", "اذكر شيء تلقاه في الثلاجة", "اذكر شيء ينباع في المخبز", "اذكر أكلة تنطبخ في العزايم", "اذكر شيء يتاكل في الشتاء", "اذكر شيء يتاكل في الصيف", "اذكر شيء تطلبه من المطعم دايم", "اذكر نوع شوربة", "اذكر نوع معكرونة", "اذكر أكلة فيها جبن", "اذكر أكلة فيها بيض", "اذكر نوع عسل أو مربى", "اذكر مدينة أوروبية", "اذكر مدينة أمريكية", "اذكر دولة تتكلم إسباني", "اذكر دولة تطل على البحر", "اذكر جزيرة", "اذكر نهر", "اذكر جبل مشهور", "اذكر مدينة سياحية", "اذكر دولة تبي تسافر لها", "اذكر معلم سياحي مشهور", "اذكر شيء تلقاه في مكة", "اذكر مدينة خليجية", "اذكر حي في الرياض", "اذكر حي في جدة", "اذكر محافظة سعودية", "اذكر دولة في أمريكا الجنوبية", "اذكر دولة علمها فيه أحمر", "اذكر دولة علمها فيه نجمة", "اذكر عملة", "اذكر لغة", "اذكر قارة أو محيط", "اذكر دولة مشهورة بالأكل", "اذكر دولة مشهورة بالكورة", "اذكر مكان تروح له في الويكند", "اذكر مكان فيه زحمة", "اذكر مكان هادي", "اذكر مكان ما تحب تروحه", "اذكر شيء تلقاه في الحديقة", "اذكر شيء تلقاه في حديقة الحيوان", "اذكر لعبة تلقاها في الملاهي", "اذكر شيء تلقاه في الفندق", "اذكر شيء تلقاه في المسجد", "اذكر شيء تلقاه في البنك", "اذكر شيء تلقاه في الصيدلية", "اذكر شيء تلقاه في الجامعة", "اذكر شيء تلقاه في المزرعة", "اذكر شيء تلقاه في السوبرماركت", "اذكر شيء تلقاه في الاستراحة", "اذكر شيء تلقاه في المجلس", "اذكر شيء تلقاه عند الحلاق", "اذكر شيء تلقاه في النادي الرياضي", "اذكر شيء تلقاه في محطة القطار", "اذكر شيء تلقاه في السطح", "اذكر شيء تلقاه في المخيم", "اذكر شيء تلقاه في المكتبة", "اذكر حيوان صغير", "اذكر حيوان ضخم", "اذكر حيوان سريع", "اذكر حيوان بطيء", "اذكر حيوان يعيش في الغابة", "اذكر حيوان يعيش في المزرعة", "اذكر حيوان يبيض", "اذكر حيوان له أنياب", "اذكر حيوان ينام كثير", "اذكر حيوان لونه أسود", "اذكر حيوان مخطط أو منقط", "اذكر حيوان منقرض", "اذكر حيوان يعيش في القطب", "اذكر حيوان يقفز", "اذكر حيوان له رقبة طويلة", "اذكر صوت حيوان", "اذكر حيوان يركبه الإنسان", "اذكر حيوان يتربى في البيت غير القطط", "اذكر طائر جارح", "اذكر حيوان يطلع بالليل", "اذكر حيوان له قوقعة أو صدفة", "اذكر شيء تلقاه في الصالة", "اذكر شيء في الدولاب", "اذكر شيء في الدرج", "اذكر شيء تحت السرير", "اذكر شيء على طاولة الأكل", "اذكر شيء يتعلق على الجدار", "اذكر شيء في الكراج", "اذكر شيء في الحوش", "اذكر شيء في شنطة المدرسة", "اذكر شيء في شنطة اليد", "اذكر شيء في جيبك", "اذكر شيء في المحفظة", "اذكر شيء له شاشة", "اذكر شيء له سلك", "اذكر شيء يطلع ضوء", "اذكر شيء ينطوى", "اذكر شيء ينغسل", "اذكر شيء يتعبى", "اذكر شيء له غطاء", "اذكر شيء له مقبض", "اذكر شيء حاد", "اذكر شيء ناعم", "اذكر شيء ثقيل", "اذكر شيء خفيف", "اذكر شيء صغير يضيع بسهولة", "اذكر شيء شكله مربع", "اذكر شيء طويل", "اذكر شيء مصنوع من الزجاج", "اذكر شيء مصنوع من الحديد", "اذكر شيء مصنوع من القماش", "اذكر شيء مصنوع من الورق", "اذكر شيء مصنوع من الجلد", "اذكر شيء يتلبس في الرجل", "اذكر شيء يتلبس على الراس", "اذكر إكسسوار", "اذكر شيء تستخدمه للتنظيف", "اذكر أداة مطبخ", "اذكر شيء ينحط في الفرن", "اذكر شيء يستخدمه البيبي", "اذكر لعبة أطفال", "اذكر شيء له رقم", "اذكر شيء له قفل", "اذكر شيء ينشحن", "اذكر شيء قديم ما عاد أحد يستخدمه", "اذكر وظيفة لها زي رسمي", "اذكر وظيفة صعبة", "اذكر وظيفة تكسب فلوس كثير", "اذكر شيء يسويه المعلم", "اذكر شيء يسويه الدكتور", "اذكر شيء يقوله الأب دايم", "اذكر شيء تقوله الأم دايم", "اذكر شيء يضحّك", "اذكر شيء ممل", "اذكر عذر تقوله لما تتأخر", "اذكر شيء تسويه قبل النوم", "اذكر شيء تسويه لما تطفش", "اذكر شيء تسويه في الزحمة", "اذكر شيء تنساه دايم", "اذكر شيء تخاف تضيّعه", "اذكر شيء تشتريه أونلاين", "اذكر شيء تصرف عليه فلوس كثير", "اذكر شيء تسويه في الصيف", "اذكر شيء يسويه الطلاب أيام الاختبارات", "اذكر شيء يسويه الموظف في الدوام", "اذكر شيء تسويه في السفر", "اذكر عادة سيئة", "اذكر عادة حلوة", "اذكر صفة حلوة في الصديق", "اذكر صفة ما تحبها في الشخص", "اذكر شيء يسويه الطفل", "اذكر شيء يسويه الشايب", "اذكر شيء تسويه لما يجيك ضيف", "اذكر كلمة تقولها لما تتفاجأ", "اذكر لقب يتنادى فيه الشباب", "اذكر منتخب كرة قدم", "اذكر لاعب سعودي", "اذكر لاعب عالمي معتزل", "اذكر مركز في كرة القدم", "اذكر شيء يحتاجه لاعب الكورة", "اذكر رياضة فيها كرة", "اذكر رياضة مائية", "اذكر رياضة فردية", "اذكر رياضة أولمبية", "اذكر رياضة خطيرة", "اذكر بطولة رياضية", "اذكر مدرب كورة مشهور", "اذكر ملعب مشهور", "اذكر شيء يصير في المباراة", "اذكر كلمة يقولها المعلق", "اذكر تمرين رياضي", "اذكر رياضة شعبية في الخليج", "اذكر لعبة شعبية قديمة", "اذكر لعبة ورق", "اذكر لعبة تلعبها مع الشلة", "اذكر شخصية في لعبة فيديو", "اذكر مسلسل كرتون", "اذكر فيلم مشهور", "اذكر فيلم كرتون", "اذكر مطرب خليجي", "اذكر مطرب عربي", "اذكر ممثل خليجي", "اذكر ممثل عالمي", "اذكر بطل خارق", "اذكر شخصية شريرة في فيلم أو كرتون", "اذكر برنامج تلفزيوني", "اذكر قناة تلفزيونية", "اذكر مشهور سوشال ميديا", "اذكر موقع تواصل اجتماعي", "اذكر تطبيق توصيل", "اذكر تطبيق بنك أو دفع", "اذكر جهاز ألعاب", "اذكر شركة تقنية", "اذكر شيء في الكمبيوتر", "اذكر شيء في إعدادات الجوال", "اذكر شيء تسويه بالجوال", "اذكر إيموجي تستخدمه كثير", "اذكر شيء ينرسل في القروب", "اذكر كلمة إنجليزية نستخدمها في كلامنا", "اذكر اختصار نكتبه في الرسائل", "اذكر شيء يخرب في الجوال", "اذكر شخصية تاريخية", "اذكر شاعر", "اذكر كتاب أو رواية مشهورة", "اذكر شخصية كرتون قديمة", "اذكر أغنية أطفال", "اذكر شيء يطلع في الإعلانات", "اذكر ماركة عطور", "اذكر ماركة ساعات", "اذكر علامة تجارية سعودية", "اذكر سوبرماركت", "اذكر مقهى مشهور", "اذكر ماركة مياه أو عصائر", "اذكر ماركة رياضية", "اذكر محل ملابس", "اذكر شركة طيران", "اذكر شركة اتصالات", "اذكر ماركة مكياج أو عناية", "اذكر شيء تشتريه في العيد", "اذكر شيء تشتريه من ايكيا", "اذكر شيء ينباع بالكيلو", "اذكر شيء ينباع بالحبة", "اذكر شيء تشتريه بأقل من 10 ريال", "اذكر شيء تشتريه بأكثر من 1000 ريال", "اذكر شيء لونه أزرق", "اذكر شيء لونه برتقالي", "اذكر شيء لونه بني", "اذكر شيء لونه وردي", "اذكر شيء لونه رمادي", "اذكر شيء لونه ذهبي", "اذكر شيء لونه بنفسجي", "اذكر شيء شفاف", "اذكر شيء يذوب", "اذكر شيء يتجمّد", "اذكر شيء يحترق", "اذكر شيء يدور", "اذكر شيء يطلع وينزل", "اذكر شيء يتحرك بسرعة", "اذكر شيء يلزق", "اذكر شيء يزلق", "اذكر شيء صوته مزعج", "اذكر شيء له أرجل", "اذكر شيء له أجنحة", "اذكر شيء له أسنان", "اذكر شيء فيه ماء", "اذكر شيء فيه ملح", "اذكر شيء فيه هواء", "اذكر شيء يجي أزواج", "اذكر شيء يكون تحت الأرض", "اذكر شيء له علاقة بالبحر", "اذكر شيء له علاقة بالليل", "اذكر شيء له علاقة بالنار", "اذكر شيء له علاقة بالحج", "اذكر شيء له علاقة باليوم الوطني", "اذكر اسم ولد يبدأ بحرف الميم", "اذكر اسم بنت يبدأ بحرف السين", "اذكر اسم ولد يبدأ بحرف الفاء", "اذكر اسم بنت يبدأ بحرف الراء", "اذكر اسم ولد يبدأ بحرف الخاء", "اذكر اسم بنت يبدأ بحرف الهاء", "اذكر اسم ولد يبدأ بحرف السين", "اذكر اسم بنت يبدأ بحرف الميم", "اذكر اسم ولد يبدأ بحرف الباء", "اذكر اسم بنت يبدأ بحرف اللام", "اذكر اسم ولد يبدأ بحرف النون", "اذكر اسم ولد يبدأ بحرف الحاء", "اذكر اسم بنت يبدأ بحرف العين", "اذكر اسم يصلح للولد والبنت", "اذكر اسم قطو", "اذكر مدينة تبدأ بحرف الجيم", "اذكر دولة تبدأ بحرف الألف", "اذكر حيوان يبدأ بحرف الألف", "اذكر فاكهة تبدأ بحرف الباء", "اذكر أكلة تبدأ بحرف الميم", "اذكر دولة تبدأ بحرف السين", "اذكر مهنة تبدأ بحرف الميم", "اذكر شيء يبدأ بحرف الكاف", "اذكر شيء يوجع", "اذكر مرض", "اذكر دواء", "اذكر شيء في شنطة الإسعافات", "اذكر شيء يسويه الإنسان بدون ما يحس", "اذكر شيء له علاقة بالأسنان", "اذكر شيء له علاقة بالشعر", "اذكر شيء ينحط على الوجه", "اذكر أكل صحي", "اذكر شيء مو صحي بس لذيذ", "اذكر شيء يساعدك تنام", "اذكر طريقة تبرّد فيها نفسك", "اذكر شيء يرفع الضغط", "اذكر سيارة فخمة", "اذكر سيارة عائلية", "اذكر شيء يخرب في السيارة", "اذكر شيء تسويه وأنت تسوق", "اذكر لون سيارة", "اذكر شيء تشوفه في الطريق السريع", "اذكر لوحة إرشادية في الطريق", "اذكر شيء في السفينة أو القارب", "اذكر شيء يحتاج بنزين", "اذكر شيء يركب عليه شخص واحد", "اذكر مكان توقف فيه سيارتك", "اذكر شيء تشتريه للسيارة", "اذكر نوع زهرة أو ورد", "اذكر شيء يطلع في الربيع", "اذكر شيء له علاقة بالغبار", "اذكر شيء له علاقة بالحر", "اذكر ظاهرة طبيعية", "اذكر شيء تشوفه في السماء بالليل", "اذكر شيء له علاقة بالثلج", "اذكر شيء له علاقة بالشمس", "اذكر شيء له علاقة بالقمر", "اذكر شيء تاخذه معك لجزيرة مهجورة", "اذكر شيء تسويه لو صرت مليونير", "اذكر قوة خارقة تتمنى تكون عندك", "اذكر شيء ما تبي أحد يشوفه في جوالك", "اذكر شيء تسويه لو انقطعت الكهرباء", "اذكر شيء ينسرق كثير", "اذكر شيء يعصبك وأنت تسوق", "اذكر شيء تقوله لما تخسر", "اذكر شيء تقوله لما تفوز", "اذكر عذر تقوله عشان ما تطلع", "اذكر شيء ممنوع في المدرسة", "اذكر شيء يسويه الأخ الصغير", "اذكر شيء تسويه أول ما توصل البيت", "اذكر شيء تدوّر عليه دايم", "اذكر شيء يتأخر دايم", "اذكر شيء يخلص بسرعة", "اذكر شيء ما تقدر تقاومه", "اذكر شيء تسويه وأنت تنتظر", "اذكر شيء يتكلم عنه الناس في المجالس", "اذكر سؤال يسألونك إياه في العزايم", "اذكر شيء ينطلب في الطلبات الجماعية", "اذكر شيء تحتاجه في الحفلة", "اذكر هدية تهديها لصديقك", "اذكر هدية مالها داعي", "اذكر شيء تصوّره دايم", "اذكر شيء تحب تجمعه", "اذكر شيء يذكّرك بالطفولة", "اذكر شيء تتمنى تتعلمه", "اذكر شيء يسهّرك", "اذكر شيء تشتريه وما تستخدمه", "اذكر شيء يخلي الشخص محبوب", "اذكر شيء تقوله للمدير", "اذكر شيء تلقاه في حفلة عيد ميلاد", "اذكر شيء على سفرة رمضان", "اذكر شيء يتقدم للضيف", "اذكر شيء يتوزع في العيد", "اذكر شيء تلقاه في الخيمة", "اذكر شيء تلبسه في الشتاء", "اذكر شيء تلبسه في العرس", "اذكر لبس تقليدي", "اذكر شيء يلبسه الرجال", "اذكر شيء تلبسه البنات", "اذكر شيء ينحط في الشعر", "اذكر نوع حذاء", "اذكر شيء تستخدمه في الرسم", "اذكر أداة مكتبية", "اذكر شيء تلقاه في المختبر", "اذكر شيء له علاقة بالرياضيات", "اذكر شيء له علاقة بالفضاء", "اذكر شيء له علاقة بالجيش", "اذكر شيء له علاقة بالشرطة", "اذكر شيء له علاقة بالفلوس", "اذكر شيء له علاقة بالحب", "اذكر شيء له علاقة بالتصوير", "اذكر شيء له علاقة بالبناء", "اذكر شيء له علاقة بالزراعة", "اذكر شيء له علاقة بالصيد", "اذكر شيء له علاقة بالخيل"];
+const RESULT_MS = 9000, COUNT_MS = 3000, GRACE_MS = 1500;
+
+const app = document.getElementById('app');
+let db = null, U = null, myId = null, myName = '';
+let code = null, room = null, players = [], answers = [], unsubs = [];
+let viewKey = '', phaseKey = '', localDeadline = 0, firstSnap = true;
+let draft = { text: '', points: null }, autoSent = '', busy = false, sel = new Set(), wasIn = false;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a }
+function norm(s){
+  s = String(s||'').trim().toLowerCase()
+    .replace(/[ً-ٰٟـ]/g,'')
+    .replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
+    .replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+  return s.split(' ').map(w => (w.startsWith('ال') && w.length > 3) ? w.slice(2) : w).join(' ');
+}
+const urlRoom = () => { try { return (new URLSearchParams(location.search).get('room')||'').replace(/\D/g,'') } catch { return '' } };
+const inviteUrl = () => location.origin + location.pathname + '?room=' + code;
+const isHost = () => room && room.hostId === myId;
+const roomRef = () => db.doc('rooms/' + code);
+const pName = id => (players.find(p => p.id === id)?.name) || 'لاعب';
+const roundAnswers = () => room ? answers.filter(a => a.game === room.game && a.round === room.round) : [];
+const myAnswer = () => roundAnswers().find(a => a.uid === myId);
+const usedPoints = () => new Set(answers.filter(a => room && a.game === room.game && a.uid === myId && a.round !== room.round).map(a => a.points));
+const pool = () => Array.from({length: room.settings.rounds}, (_, i) => i + 1);
+const available = () => { const u = usedPoints(); return pool().filter(p => !u.has(p)) };
+const colorOf = id => { let h=0; for (const c of String(id)) h = (h*31 + c.charCodeAt(0)) % 360; return `hsl(${h} 70% 50%)` };
+
+function header(){
+  return `<header class="top"><div class="logo"><span class="mark" aria-hidden="true">≠</span>لا تقلّد</div>${code ? `<span class="codechip">غرفة ${esc(code)}</span>` : ''}</header>`;
+}
+
+/* ---------- Home ---------- */
+function renderHome(msg){
+  viewKey = 'home';
+  const last = LS.get('lt_name') || myName || '';
+  app.innerHTML = header() + `
+  <section class="card">
+    <h1>اكتب إجابة ما تخطر على بال أحد</h1>
+    <p class="muted">لعبة جماعية: كل جولة سؤال، وكل واحد يكتب إجابة. إذا أحد كتب نفس إجابتك، تروح عليكم النقاط.</p>
+    <div><label for="nm">اسمك</label><input id="nm" type="text" maxlength="20" value="${esc(last)}" placeholder="مثلاً: أبو فهد" autocomplete="nickname"></div>
+    <div class="err" id="err">${esc(msg||'')}</div>
+    <button class="primary" id="create" ${db&&myId?'':'disabled'}>إنشاء لعبة</button>
+    <div class="row"><div class="grow"><label for="jc">رقم غرفة موجودة</label><input id="jc" type="text" inputmode="numeric" maxlength="6" placeholder="1234" value="${esc(urlRoom())}" dir="ltr" style="text-align:center;letter-spacing:4px"></div></div>
+    <button class="sun" id="join" ${db&&myId?'':'disabled'}>الانضمام إلى لعبة</button>
+    ${!db || !myId ? `<p class="notice" id="ready">${window.__ready ? (window.__cfgMissing ? 'اللعبة تحتاج إعدادات Firebase. راجع ملف الشرح.' : 'تعذّر الاتصال بالخادم. حدّث الصفحة.') : 'جاري التجهيز…'}</p>` : ''}
+  </section>
+  <section class="card">
+    <h3>طريقة اللعب</h3>
+    <ol class="rules">
+      <li><span>المضيف ينشئ غرفة ويرسل رقمها لأصحابه، وكل واحد يدخل الرقم.</span></li>
+      <li><span>كل جولة يطلع سؤال مثل «اذكر فاكهة». اكتب إجابتك قبل ما يخلص الوقت.</span></li>
+      <li><span>اختر نقاط الجولة من رصيدك (من 1 إلى عدد الجولات). كل رقم يُستخدم مرة وحدة في اللعبة، فخلّ الكبير للسؤال اللي متأكد فيه.</span></li>
+      <li><span>إجابتك فريدة؟ تاخذ النقاط اللي اخترتها. أحد قلّدك؟ صفر لكم كلكم.</span></li>
+      <li><span>المضيف يعتمد الإجابات: يدمج المتشابهة (مثل «برتقال» و«البرتقالة») ويرفض الغلط.</span></li>
+    </ol>
+  </section>`;
+  const nm = document.getElementById('nm'), jc = document.getElementById('jc'), err = document.getElementById('err');
+  const getName = () => { const n = nm.value.trim(); if (!n){ err.textContent = 'اكتب اسمك أول.'; nm.focus(); return null } LS.set('lt_name', n); return n };
+  document.getElementById('create').onclick = async e => { const n = getName(); if (!n) return; e.target.disabled = true; try { await createRoom(n) } catch(x){ err.textContent = 'ما قدرنا ننشئ الغرفة. تأكد من الاتصال بالإنترنت.'; e.target.disabled = false; console.error(x) } };
+  document.getElementById('join').onclick = async e => { const n = getName(); if (!n) return; const c = jc.value.replace(/\D/g,''); if (!c){ err.textContent = 'اكتب رقم الغرفة.'; jc.focus(); return } e.target.disabled = true; try { await joinRoom(c, n) } catch(x){ err.textContent = x.userMsg || 'ما قدرنا ندخلك الغرفة. تأكد من الاتصال بالإنترنت.'; e.target.disabled = false; console.error(x) } };
+  jc.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('join').click() });
+}
+
+/* ---------- Room lifecycle ---------- */
+async function createRoom(name){
+  let c;
+  for (let i = 0; i < 8; i++){ c = String(1000 + Math.floor(Math.random()*9000)); const s = await db.doc('rooms/' + c).get(); if (!s.exists || (Date.now() - (s.data().createdAt||0)) > 864e5) break }
+  await db.doc('rooms/' + c).set({ code: c, hostId: myId, status: 'lobby', game: 1, round: 0, settings: { rounds: 10, time: 20 }, qIds: [], phaseAt: Date.now(), phaseDur: 0, scores: {}, review: { merge: {}, rejected: [] }, last: null, createdAt: Date.now() });
+  await joinRoom(c, name);
+}
+async function joinRoom(c, name){
+  const s = await db.doc('rooms/' + c).get();
+  if (!s.exists){ const e = new Error('nf'); e.userMsg = 'ما لقينا غرفة بهالرقم.'; throw e }
+  const pref = db.doc(`rooms/${c}/players/${myId}`);
+  const ps = await pref.get();
+  await pref.set({ name, joinedAt: ps.exists ? (ps.data().joinedAt || Date.now()) : Date.now() });
+  enterRoom(c);
+}
+function enterRoom(c){
+  leaveSubs(); code = c; room = null; players = []; answers = []; firstSnap = true; viewKey = ''; phaseKey = ''; wasIn = false;
+  LS.set('lt_room', c);
+  unsubs.push(db.doc('rooms/' + c).onSnapshot(s => {
+    if (!s.exists){ goHome('الغرفة انحذفت.'); return }
+    room = s.data(); onPhase(); render();
+  }, onDbErr));
+  unsubs.push(db.collection(`rooms/${c}/players`).orderBy('joinedAt').onSnapshot(s => {
+    players = s.docs.map(d => ({ id: d.id, ...d.data() }));
+    const inNow = players.some(p => p.id === myId);
+    if (inNow) wasIn = true;
+    else if (wasIn && !s.metadata.fromCache) { goHome('طلعت من الغرفة.'); return }
+    render();
+  }, onDbErr));
+  unsubs.push(db.collection(`rooms/${c}/answers`).onSnapshot(s => { answers = s.docs.map(d => d.data()); render() }, onDbErr));
+  app.innerHTML = header() + `<section class="card center"><p class="muted">جاري الدخول للغرفة…</p></section>`;
+}
+function onDbErr(e){ console.error(e); if (e.code === 'revoked') goHome('انقطع الوصول للعبة.') }
+function leaveSubs(){ unsubs.forEach(u => { try{u()}catch{} }); unsubs = [] }
+function goHome(msg){ leaveSubs(); code = null; room = null; LS.del('lt_room'); renderHome(msg) }
+async function leaveRoom(){
+  const others = players.filter(p => p.id !== myId);
+  try {
+    if (isHost() && others.length) await roomRef().set({ ...room, hostId: others[0].id });
+    await db.doc(`rooms/${code}/players/${myId}`).delete();
+    if (!others.length) await roomRef().delete();
+  } catch(e){ console.error(e) }
+  goHome();
+}
+
+/* ---------- Phase timing ---------- */
+function onPhase(){
+  const k = `${room.game}-${room.round}-${room.status}`;
+  if (k === phaseKey) return;
+  phaseKey = k;
+  const now = Date.now(), raw = room.phaseAt + room.phaseDur;
+  localDeadline = firstSnap ? raw : Math.min(now + room.phaseDur, Math.max(raw, now + room.phaseDur - 3000));
+  firstSnap = false;
+  if (room.status === 'question'){ draft = { text: '', points: null }; }
+  if (room.status === 'review'){ sel = new Set() }
+}
+async function hostSet(patch){
+  if (busy) return; busy = true;
+  try { const next = { ...room, ...patch }; await roomRef().set(next) } catch(e){ console.error(e) } finally { busy = false }
+}
+function hostTick(){
+  if (!room || !isHost() || busy || !players.length) return;
+  const now = Date.now(), el = now - room.phaseAt;
+  if (room.status === 'countdown' && el >= room.phaseDur) hostSet({ status: 'question', phaseAt: now, phaseDur: room.settings.time * 1000 });
+  else if (room.status === 'question'){
+    const got = new Set(roundAnswers().map(a => a.uid));
+    if (el >= room.phaseDur + GRACE_MS || players.every(p => got.has(p.id))) hostSet({ status: 'review', phaseAt: now, phaseDur: 0, review: { merge: {}, rejected: [] } });
+  }
+  else if (room.status === 'result' && el >= room.phaseDur){
+    if (room.round >= room.settings.rounds) hostSet({ status: 'over', phaseAt: now, phaseDur: 0 });
+    else hostSet({ status: 'countdown', round: room.round + 1, phaseAt: now, phaseDur: COUNT_MS });
+  }
+}
+function tick(){
+  const now = Date.now();
+  document.querySelectorAll('[data-timer]').forEach(el => {
+    const left = Math.max(0, Math.ceil((localDeadline - now) / 1000));
+    if (el.textContent !== String(left)) el.textContent = left;
+    el.classList.toggle('low', el.classList.contains('timer') && left <= 5);
+  });
+  if (room && room.status === 'question' && !myAnswer() && autoSent !== phaseKey && now >= localDeadline - 250){
+    autoSent = phaseKey;
+    if (draft.text.trim()) submitAnswer(true);
+    else { const inp = document.getElementById('ans'); if (inp) inp.disabled = true }
+  }
+  hostTick();
+}
+setInterval(tick, 250);
+
+/* ---------- Render dispatcher ---------- */
+function render(){
+  if (!room || !code) return;
+  if (!players.length) return;
+  const st = room.status;
+  const key = `${st}-${room.game}-${room.round}`;
+  if (st === 'question' && viewKey === key){ updateQuestion(); return }
+  viewKey = key;
+  const fn = { lobby: vLobby, countdown: vCountdown, question: vQuestion, review: vReview, result: vResult, over: vOver }[st] || vLobby;
+  app.innerHTML = header() + fn() + footer();
+  bind(st);
+  tick();
+}
+function footer(){
+  const stuck = room && room.status !== 'lobby' && room.status !== 'over' && !isHost() &&
+    (!players.some(p => p.id === room.hostId) || Date.now() - room.phaseAt > room.phaseDur + (room.status === 'review' ? 120000 : 20000));
+  return `<div class="row" style="justify-content:space-between">
+    <button class="link" id="leave">الخروج من الغرفة</button>
+    ${stuck ? `<button class="link" id="takeover">المضيف غايب؟ تولَّ الإدارة</button>` : ''}
+  </div>`;
+}
+function rankList(withDelta){
+  const sc = room.scores || {};
+  const last = (room.last && room.last.round === room.round) ? room.last.items : [];
+  const rows = players.map(p => ({ id: p.id, name: p.name, s: sc[p.id] || 0, d: (last.find(i => i.uid === p.id)?.delta) || 0 })).sort((a,b) => b.s - a.s);
+  let pos = 0, prev = null;
+  return `<ol class="rank">${rows.map((r, i) => { if (r.s !== prev){ pos = i + 1; prev = r.s } return `<li class="${r.id===myId?'me':''}"><span class="pos">${pos}</span><span>${esc(r.name)}${r.id===room.hostId?' <span class="tag">المضيف</span>':''}</span><span class="sc">${r.s}${withDelta && r.d ? `<span class="delta pos">+${r.d}</span>` : ''}</span></li>` }).join('')}</ol>`;
+}
+
+/* ---------- Views ---------- */
+function vLobby(){
+  const h = isHost(), s = room.settings;
+  const seg = (name, opts, cur, fmt) => `<div class="seg" role="group">${opts.map(o => `<button data-set="${name}" data-v="${o}" aria-pressed="${o===cur}" ${h?'':'disabled'}>${fmt(o)}</button>`).join('')}</div>`;
+  return `<section class="card center pop">
+    <h3>رقم الغرفة</h3>
+    <div class="bigcode">${esc(code)}</div>
+    <div class="row" style="justify-content:center"><button class="sun" id="invite">نسخ رابط الدعوة</button><button id="copy">نسخ الرقم</button></div>
+    <p class="muted small">أرسل الرابط لأصحابك في الواتساب: يفتحونه، يكتبون أسماءهم ويضغطون «الانضمام إلى لعبة».</p>
+    <p class="small" dir="ltr" style="overflow-wrap:anywhere;user-select:all">${esc(inviteUrl())}</p>
+  </section>
+  <section class="card">
+    <h3>اللاعبين (${players.length})</h3>
+    <div class="players">${players.map(p => `<span class="pchip"><span class="dot" style="background:${colorOf(p.id)}"></span>${esc(p.name)}${p.id===room.hostId?' <span class="tag">المضيف</span>':''}</span>`).join('')}</div>
+  </section>
+  <section class="card">
+    <div><label>عدد الجولات</label>${seg('rounds', [10,20], s.rounds, v => v === 10 ? '10 جولات' : '20 جولة')}</div>
+    <div><label>وقت كل سؤال</label>${seg('time', [15,20,25,30], s.time, v => v + ' ثانية')}</div>
+    ${h ? `<button class="primary" id="start">بدء اللعبة</button>${players.length < 3 ? '<p class="muted small center">اللعبة أحلى مع 3 لاعبين أو أكثر.</p>' : ''}`
+        : `<p class="notice center">بانتظار المضيف يبدأ اللعبة…</p>`}
+  </section>`;
+}
+function vCountdown(){
+  return `<section class="card center pop"><h3>الجولة ${room.round} من ${room.settings.rounds}</h3><h2>استعد للسؤال</h2><div class="count" data-timer></div></section>
+  <section class="card"><h3>الترتيب</h3>${rankList(false)}</section>`;
+}
+function vQuestion(){
+  const q = BANK[room.qIds[room.round - 1]] || '';
+  const me = players.some(p => p.id === myId);
+  return `<section class="card pop">
+    <div class="qhead"><h3>الجولة ${room.round} من ${room.settings.rounds}</h3><div class="timer" data-timer></div></div>
+    <div class="question">${esc(q)}</div>
+    <div id="qbody">${me ? qBody() : '<p class="notice">انضممت أثناء الجولة، تقدر تلعب من الجولة الجاية.</p>'}</div>
+  </section>
+  <section class="card"><h3>مين جاوب</h3><div class="players" id="whodone">${whoDone()}</div></section>`;
+}
+function qBody(){
+  const a = myAnswer();
+  if (a) return `<div class="notice center"><strong>تم إرسال إجابتك</strong><br>«${esc(a.text)}» على ${a.points} ${a.points===1?'نقطة':'نقاط'}</div>`;
+  const av = new Set(available());
+  return `<div><label for="ans">إجابتك</label><input id="ans" type="text" maxlength="40" autocomplete="off" value="${esc(draft.text)}" placeholder="اكتب إجابة ما يفكر فيها غيرك"></div>
+  <div><label>اختر نقاط هذه الجولة <span class="muted small" id="ptsel">${draft.points ? '— ' + draft.points : '— لم يتم الاختيار'}</span></label>
+  <div class="points">${pool().map(p => `<button data-pt="${p}" aria-pressed="${draft.points===p}" ${av.has(p)?'':'disabled class="used"'}>${p}</button>`).join('')}</div></div>
+  <button class="primary" id="send">إرسال الإجابة</button>`;
+}
+function whoDone(){
+  const got = new Set(roundAnswers().map(a => a.uid));
+  return players.map(p => `<span class="pchip ${got.has(p.id)?'done':''}">${esc(p.name)}${got.has(p.id)?' ✓':''}</span>`).join('');
+}
+function updateQuestion(){
+  const w = document.getElementById('whodone'); if (w) w.innerHTML = whoDone();
+  const qb = document.getElementById('qbody');
+  if (qb && myAnswer() && !qb.querySelector('.notice')){ qb.innerHTML = qBody() }
+}
+function groupsFor(){
+  const merge = room.review?.merge || {}, rej = new Set(room.review?.rejected || []);
+  const resolve = k => { let g = 0; while (merge[k] && g++ < 50) k = merge[k]; return k };
+  const map = new Map();
+  for (const a of roundAnswers()){
+    const raw = norm(a.text) || '__empty', k = resolve(raw);
+    if (!map.has(k)) map.set(k, { key: k, items: [], raws: new Set() });
+    const g = map.get(k); g.items.push(a); g.raws.add(raw);
+  }
+  return [...map.values()].map(g => ({ ...g, rejected: rej.has(g.key) || g.key === '__empty', merged: g.raws.size > 1 }))
+    .sort((a,b) => b.items.length - a.items.length);
+}
+function vReview(){
+  const h = isHost(), gs = groupsFor();
+  const got = new Set(roundAnswers().map(a => a.uid));
+  const none = players.filter(p => !got.has(p.id));
+  const q = BANK[room.qIds[room.round - 1]] || '';
+  const cards = gs.map(g => {
+    const texts = [...new Set(g.items.map(i => i.text.trim()))];
+    const st = g.rejected ? '<span class="stamp rej">مرفوضة</span>' : g.items.length > 1 ? '<span class="stamp copy">مقلَّدة</span>' : '<span class="stamp uniq">فريدة</span>';
+    const inner = `<span class="gtext">${esc(texts.join(' / '))} ${st}</span><span class="players">${g.items.map(i => `<span class="pchip">${esc(pName(i.uid))}</span>`).join('')}</span>`;
+    return h ? `<button class="group ${g.rejected?'rejected':''}" data-g="${esc(g.key)}" aria-pressed="${sel.has(g.key)}">${inner}</button>`
+             : `<div class="group ${g.rejected?'rejected':''}">${inner}</div>`;
+  }).join('');
+  return `<section class="card">
+    <h3>اعتماد الإجابات · الجولة ${room.round}</h3>
+    <h2>${esc(q)}</h2>
+    ${h ? `<p class="muted small">اضغط على الإجابات لتحديدها. ادمج المتشابهة في المعنى، وارفض الغلط، وبعدين اعتمد.</p>` : `<p class="notice">المضيف يراجع الإجابات الحين…</p>`}
+    <div class="groups">${cards || '<p class="muted">ما أحد جاوب هالجولة.</p>'}</div>
+    ${none.length ? `<p class="muted small">ما جاوبوا: ${none.map(p => esc(p.name)).join('، ')}</p>` : ''}
+    ${h ? `<div class="toolbar">
+      <button id="merge" ${sel.size>=2?'':'disabled'}>دمج كإجابة وحدة</button>
+      <button id="split" ${[...sel].some(k => gs.find(g => g.key===k)?.merged)?'':'disabled'}>فك الدمج</button>
+      <button id="reject" ${sel.size?'':'disabled'}>رفض / قبول</button>
+      <button class="primary" id="confirm">اعتماد النتائج</button>
+    </div>` : ''}
+  </section>`;
+}
+function vResult(){
+  const items = (room.last && room.last.round === room.round) ? room.last.items : [];
+  const got = new Set(items.map(i => i.uid));
+  const stamp = i => i.status === 'unique' ? `<span class="stamp uniq">فريدة +${i.delta}</span>` : i.status === 'copied' ? `<span class="stamp copy">مقلَّدة</span>` : `<span class="stamp rej">مرفوضة</span>`;
+  const last = room.round >= room.settings.rounds;
+  return `<section class="card pop">
+    <div class="qhead"><h3>نتيجة الجولة ${room.round}</h3><span class="muted small">${last ? 'النتيجة النهائية خلال' : 'الجولة التالية خلال'} <strong data-timer></strong></span></div>
+    <h2>${esc(BANK[room.qIds[room.round - 1]] || '')}</h2>
+    <div>${items.map(i => `<div class="res"><span class="who">${esc(pName(i.uid))}</span>${stamp(i)}<span class="ans">«${esc(i.text)}» · ${i.points} ${i.points===1?'نقطة':'نقاط'}</span></div>`).join('')}
+    ${players.filter(p => !got.has(p.id)).map(p => `<div class="res"><span class="who">${esc(p.name)}</span><span class="stamp rej">ما جاوب</span></div>`).join('')}</div>
+  </section>
+  <section class="card"><h3>ترتيب اللاعبين</h3>${rankList(true)}</section>`;
+}
+function vOver(){
+  const sc = room.scores || {};
+  const top = players.slice().sort((a,b) => (sc[b.id]||0) - (sc[a.id]||0))[0];
+  return `<section class="card center pop">
+    <h3>انتهت اللعبة</h3>
+    <h1>${top ? esc(top.name) + ' فاز!' : 'انتهت اللعبة'}</h1>
+    <p class="muted">${top ? `بـ ${sc[top.id]||0} نقطة، وما قدر أحد يقلّده.` : ''}</p>
+  </section>
+  <section class="card"><h3>الترتيب النهائي</h3>${rankList(false)}
+    ${isHost() ? `<button class="primary" id="again">لعبة جديدة بنفس الغرفة</button>` : `<p class="notice center">المضيف يقدر يبدأ لعبة جديدة بنفس الغرفة.</p>`}
+  </section>`;
+}
+
+/* ---------- Bindings & actions ---------- */
+function bind(st){
+  const $ = id => document.getElementById(id);
+  $('leave') && ($('leave').onclick = leaveRoom);
+  $('takeover') && ($('takeover').onclick = () => hostSet({ hostId: myId, phaseAt: Date.now() }));
+  if (st === 'lobby'){
+    $('invite').onclick = async e => { try { await navigator.clipboard.writeText(inviteUrl()); e.target.textContent = 'تم نسخ الرابط' } catch { e.target.textContent = 'انسخ الرابط من تحت' } };
+    $('copy').onclick = async e => { try { await navigator.clipboard.writeText(code); e.target.textContent = 'تم النسخ' } catch { e.target.textContent = code } };
+    document.querySelectorAll('[data-set]').forEach(b => b.onclick = () => hostSet({ settings: { ...room.settings, [b.dataset.set]: +b.dataset.v } }));
+    $('start') && ($('start').onclick = () => hostSet({
+      status: 'countdown', round: 1, ...pickQs(),
+      scores: {}, last: null, review: { merge: {}, rejected: [] }, phaseAt: Date.now(), phaseDur: COUNT_MS }));
+  }
+  if (st === 'question') bindQuestion();
+  if (st === 'review' && isHost()){
+    document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const k = b.dataset.g; sel.has(k) ? sel.delete(k) : sel.add(k); viewKey = ''; render() });
+    $('merge').onclick = () => {
+      const ks = [...sel], target = ks[0], merge = { ...(room.review.merge||{}) };
+      for (const k of ks.slice(1)){ merge[k] = target; for (const m in merge) if (merge[m] === k) merge[m] = target }
+      const rej = (room.review.rejected||[]).filter(k => !ks.slice(1).includes(k));
+      sel = new Set(); hostSet({ review: { merge, rejected: rej } });
+    };
+    $('split').onclick = () => {
+      const gs = groupsFor(), merge = { ...(room.review.merge||{}) };
+      for (const k of sel){ const g = gs.find(x => x.key === k); if (g) for (const r of g.raws) delete merge[r] }
+      sel = new Set(); hostSet({ review: { merge, rejected: room.review.rejected||[] } });
+    };
+    $('reject').onclick = () => {
+      const rej = new Set(room.review.rejected||[]);
+      for (const k of sel) rej.has(k) ? rej.delete(k) : rej.add(k);
+      sel = new Set(); hostSet({ review: { merge: room.review.merge||{}, rejected: [...rej] } });
+    };
+    $('confirm').onclick = confirmRound;
+  }
+  if (st === 'over' && $('again')) $('again').onclick = () => hostSet({ status: 'lobby', game: room.game + 1, round: 0, scores: {}, last: null, qIds: [], phaseAt: Date.now(), phaseDur: 0 });
+}
+function pickQs(){
+  const n = room.settings.rounds;
+  let used = Array.isArray(room.usedQ) ? room.usedQ.filter(i => i < BANK.length) : [];
+  let fresh = BANK.map((_, i) => i).filter(i => !used.includes(i));
+  if (fresh.length < n){ used = []; fresh = BANK.map((_, i) => i) }
+  const qIds = shuffle(fresh).slice(0, n);
+  return { qIds, usedQ: used.concat(qIds) };
+}
+function bindQuestion(){
+  const inp = document.getElementById('ans');
+  if (inp){
+    inp.oninput = () => { draft.text = inp.value };
+    inp.onkeydown = e => { if (e.key === 'Enter') document.getElementById('send')?.click() };
+    if (Date.now() < localDeadline) setTimeout(() => inp.focus({ preventScroll: true }), 50); else inp.disabled = true;
+  }
+  document.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
+    draft.points = +b.dataset.pt;
+    document.querySelectorAll('[data-pt]').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.pt === draft.points)));
+    const l = document.getElementById('ptsel'); if (l) l.textContent = '— ' + draft.points;
+  });
+  const send = document.getElementById('send');
+  if (send) send.onclick = () => submitAnswer(false);
+}
+async function submitAnswer(auto){
+  const text = draft.text.trim();
+  const btn = document.getElementById('send');
+  if (!text){ if (!auto){ const i = document.getElementById('ans'); i && i.focus() } return }
+  const av = available();
+  if (!draft.points && !auto){ const l = document.getElementById('ptsel'); if (l){ l.textContent = '— اختر نقاط أول'; l.style.color = 'var(--bad)' } return }
+  const points = av.includes(draft.points) ? draft.points : av[0] || 1;
+  if (btn) btn.disabled = true;
+  try {
+    await db.doc(`rooms/${code}/answers/${room.game}_${room.round}_${myId}`).set({ game: room.game, round: room.round, uid: myId, text: text.slice(0, 40), points, at: Date.now() });
+  } catch(e){ console.error(e); if (btn) btn.disabled = false }
+}
+async function confirmRound(){
+  const gs = groupsFor(), items = [];
+  for (const g of gs) for (const a of g.items){
+    const status = g.rejected ? 'rejected' : g.items.length > 1 ? 'copied' : 'unique';
+    items.push({ uid: a.uid, text: a.text, points: a.points, status, delta: status === 'unique' ? a.points : 0 });
+  }
+  const scores = { ...(room.scores||{}) };
+  for (const i of items) scores[i.uid] = (scores[i.uid] || 0) + i.delta;
+  await hostSet({ status: 'result', scores, last: { round: room.round, items }, phaseAt: Date.now(), phaseDur: RESULT_MS });
+}
+
+/* ---------- Boot ---------- */
+async function boot(){
+  renderHome();
+  try {
+    if (!window.firebase || String(firebaseConfig.apiKey).includes('PASTE')) { window.__cfgMissing = true; throw new Error('config') }
+    firebase.initializeApp(firebaseConfig);
+    const cred = await firebase.auth().signInAnonymously();
+    myId = cred.user.uid;
+    db = firebase.firestore();
+  } catch(e){ console.error(e); db = null }
+  window.__ready = true;
+  const saved = LS.get('lt_room'), fromUrl = urlRoom();
+  if (db && myId && saved && (!fromUrl || fromUrl === saved)){
+    try {
+      const [r, p] = await Promise.all([db.doc('rooms/' + saved).get(), db.doc(`rooms/${saved}/players/${myId}`).get()]);
+      if (r.exists && p.exists){ enterRoom(saved); return }
+    } catch(e){ console.error(e) }
+    LS.del('lt_room');
+  }
+  renderHome();
+  if (fromUrl && db) { const nm = document.getElementById('nm'); if (nm && !nm.value) nm.focus() }
+}
+boot();
+</script>
+</body>
+</html>
